@@ -194,6 +194,7 @@ class ARTM(object):
         self._seed = -1
         self._show_progress_bars = show_progress_bars
         self._pool = ArtmThreadPool(asynchronous=show_progress_bars)
+        self._tt_score_name = 'tt_score'
 
         if topic_names is not None:
             self._topic_names = topic_names
@@ -1258,6 +1259,33 @@ class ARTM(object):
         batch = messages.Batch(id=str(uuid.uuid4()), description="__parent_phi_matrix_batch__")
         batch_vectorizer = BatchVectorizer(batches=[batch], process_in_memory_model=self)
         return self.transform(batch_vectorizer=batch_vectorizer)
+
+    def get_top_tokens(self, num_tokens=10, with_weights=False):
+        """
+        :Description: returns most probable tokens for each topic
+        :param int num_tokens: number of top tokens to be returned
+        :param bool with_weights: return only tokens, or tuples (token, its p_wt)
+        :return:
+          * list of lists of str, each internal list corresponds one topic in\
+            natural order, if with_weights == False, or list, or list of lists\
+            of tules, each tuple is (str, float)
+        """
+        self.scores.add(
+            TopTokensScore(name=self._tt_score_name, num_tokens=num_tokens), overwrite=True)
+        result = self.master.get_score(self._tt_score_name)
+
+        tokens = []
+        global_token_index = 0
+        for topic_index in range(self.num_topics):
+            if not with_weights:
+                tokens.append(result.token[global_token_index: (global_token_index + num_tokens)])
+            else:
+                result_token = result.token[global_token_index: (global_token_index + num_tokens)]
+                result_weight = result.weight[global_token_index: (global_token_index + num_tokens)]
+                tokens.append(list(zip(result_token, result_weight)))
+            global_token_index += num_tokens
+
+        return tokens
 
 
 def version():

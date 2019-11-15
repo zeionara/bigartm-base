@@ -718,7 +718,7 @@ class ARTM(object):
         if hasattr(config, 'transaction_typename'):
             for transaction_typename in config.transaction_typename:
                 transaction_typenames[transaction_typename] = 1.0
-        self._transaction_typenames = transaction_typenames
+        #self._transaction_typenames = transaction_typenames
 
         # Remove all info about previous iterations
         self._score_tracker = {}
